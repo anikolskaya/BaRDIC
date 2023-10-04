@@ -45,7 +45,7 @@ bed2h5_input_group.add_argument('chromsizes',
 bed2h5_output_group = bed2h5_parser.add_argument_group('Output')
 bed2h5_output_group.add_argument('output',
                                  type=str,
-                                 help='output file in dnah5 format')
+                                 help='output directory')
 
 
 binsizes_parser = bardic_subparsers.add_parser('binsizes',
@@ -116,7 +116,7 @@ binsizes_params_group.add_argument('-w', '--window',
 binsizes_output_group = binsizes_parser.add_argument_group('Output')
 binsizes_output_group.add_argument('output',
                                    type=str,
-                                   help='Output tsv table with extended bin size selection results.')
+                                   help='Output directory')
 
 binsizes_processing_group = binsizes_parser.add_argument_group('Processing')
 binsizes_processing_group.add_argument('-c', '--cores',
@@ -178,7 +178,7 @@ makerdc_params_group.add_argument('-i', '--ifactor',
 makerdc_output_group = makerdc_parser.add_argument_group('Output')
 makerdc_output_group.add_argument('output',
                                   type=str,
-                                  help='Output .rdc filename.')
+                                  help='Output directory')
 
 makerdc_processing_group = makerdc_parser.add_argument_group('Processing')
 makerdc_processing_group.add_argument('-c', '--cores',
@@ -272,7 +272,7 @@ peaks_params_group.add_argument('-q', '--qval_threshold',
 peaks_output_group = peaks_parser.add_argument_group('Output')
 peaks_output_group.add_argument('output',
                                 type=str,
-                                help='Output peaks filename.')
+                                help='Output directory')
 peaks_output_group.add_argument('-f', '--format',
                                 type=str,
                                 nargs='?',

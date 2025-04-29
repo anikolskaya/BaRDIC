@@ -133,3 +133,6 @@ dmypy.json
 
 # devel folder
 devel/
+
+#custom tests
+tests

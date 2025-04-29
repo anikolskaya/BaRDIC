@@ -7,7 +7,7 @@ from ..api.io import read_bedgraph
 from .background import make_background_track
 from .binsizes import optimize_bin_sizes
 from .dnadataset import bed2h5
-from .peaks import estimate_significance, fetch_peaks, format_peaks
+from .peaks import estimate_significance, fetch_peaks, format_peaks, fetch_top_percent
 from .rdc import dnadataset_to_rdc
 from .scaling import calculate_scaling_splines
 
@@ -23,6 +23,7 @@ def run_pipeline(dna_parts_fname: str,
                  bg_binsize: int,
                  qval_threshold: float,
                  qval_type: str,
+                 top_percent: float,
                  peaks_output: str,
                  binsize_params: Dict = {},
                  rdc_params: Dict = {},
@@ -51,5 +52,11 @@ def run_pipeline(dna_parts_fname: str,
 
     estimate_significance(rdc_data, n_cores)
     peaks = fetch_peaks(rdc_data, qval_threshold, qval_type, n_cores)
+    fixed_peaks = fetch_top_percent(rdc_data, qval_type, top_percent, n_cores)
+
     formatted_peaks = format_peaks(peaks, **peaks_format_params)
     formatted_peaks.to_csv(peaks_output, sep='\t', header=False, index=False)
+
+    fixed_formatted_peaks = format_peaks(fixed_peaks, **peaks_format_params)
+    fixed_formatted_peaks.to_csv(peaks_output.replace(peaks_format_params['format'], 
+                                                      f'top_{int(top_percent)}perc.{peaks_format_params["format"]}'), sep='\t', header=False, index=False)

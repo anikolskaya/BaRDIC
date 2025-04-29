@@ -285,6 +285,12 @@ peaks_params_group.add_argument('-qt', '--qval_type',
                                      'If "global" (default), will use q-values calculated for all RNAs; '
                                      'if "rna", will use q-values calculated for each RNA separately.')
 
+peaks_params_group.add_argument(
+                                "-p", "--top-percent",
+                                type=float,
+                                default=10.0,
+                                help="Percentage of best contacts to select per RNA")
+
 peaks_output_group = peaks_parser.add_argument_group('Output')
 peaks_output_group.add_argument('output',
                                 type=str,
@@ -471,6 +477,10 @@ run_peaks_group.add_argument('-qt', '--qval_type',
                              help='BH q-value type to use for peak calling. '
                                   'If "global" (default), will use q-values calculated for all RNAs; '
                                   'if "rna", will use q-values calculated for each RNA separately.')
+run_peaks_group.add_argument('-p', '--top-percent',
+                             type=float,
+                             default=10.0,
+                             help="Percentage of best contacts to select per RNA")
 
 run_processing_group = run_pipeline_parser.add_argument_group('Processing')
 run_processing_group.add_argument('-c', '--cores',

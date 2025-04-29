@@ -20,6 +20,18 @@ This is a command line tool. Please refer to the [instruction](./docs/running.md
 
 Output file formats are stable.
 
+### Add option to select top N% peaks per RNA
+
+When `--top-percent` N is specified, the program now outputs a *_Nperc.narrowPeak file containing the top N% peaks per RNA.
+
+Requirements:
+
+`--qval_threshold` 1 must be set for correct behavior.
+
+Example usage:
+
+`bardic run cnts.bed annot.bed chrsizes.tsv background.bedGraph ./results --qval_threshold 1 --cores 10 --top-percent 10 --bgtype='custom'`
+
 ## Soon
 
 1. Python API reference.

@@ -7,7 +7,7 @@ import scipy.stats as ss
 import statsmodels.api as sm
 from tqdm.contrib.concurrent import process_map
 
-from ..api.formats import Rdc
+from ..api.formats import Rdc, DnaDataset
 from ..api.mp import adjust_chunksize
 
 
@@ -91,6 +91,27 @@ def fetch_peaks(rdc_data: Rdc, threshold: float = 0.05, qvalue_type='global', n_
                           unit='RNA')
     return pd.concat(results, ignore_index=True)
 
+def _fetch_top_percent_single(rna_name: str, rdc_data: Rdc, qvalue_type: str = 'global', top_percent: float = 10.0) -> pd.DataFrame:
+    pixels = rdc_data.read_pixels(rna_name)
+    qvalue_col = f'qvalue_{qvalue_type}'
+    pixels = pixels.dropna(subset=[qvalue_col])
+    top_percent_contacts = pixels.sort_values(by=qvalue_col, ascending=True).head(int(pixels.shape[0] * top_percent / 100)).reset_index(drop=True).rename(columns={qvalue_col: 'qvalue'})
+    top_percent_contacts['rna_name'] = rna_name
+    return top_percent_contacts
+
+def fetch_top_percent(rdc_data: Rdc, qvalue_type: str = 'global', top_percent: float = 10.0, n_cores: int = 1, chunksize: int = 50) -> pd.DataFrame:
+    if not rdc_data.are_peaks_estimated:
+        raise Exception
+    rna_names = list(rdc_data.annotation.keys())
+    func = partial(_fetch_top_percent_single, rdc_data=rdc_data, qvalue_type=qvalue_type, top_percent=top_percent)
+    chunksize = adjust_chunksize(len(rna_names), n_cores, chunksize)
+    results = process_map(func,
+                          rna_names,
+                          max_workers=n_cores,
+                          chunksize=chunksize,
+                          desc='Fetching top percent',
+                          unit='RNA')
+    return pd.concat(results, ignore_index=True)
 
 def format_peaks(peaks_df: pd.DataFrame, format: str = 'narrowPeak', score: Union[str, int] = 0) -> pd.DataFrame:
     if isinstance(score, int):
@@ -114,3 +135,5 @@ def format_peaks(peaks_df: pd.DataFrame, format: str = 'narrowPeak', score: Unio
         return peaks_df[['chrom', 'start', 'end', 'rna_name', 'fc', 'strand']]
     else:
         raise ValueError
+
+

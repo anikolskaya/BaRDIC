@@ -133,3 +133,12 @@ dmypy.json
 
 # devel folder
 devel/
+
+#custom tests
+tests
+
+# notebook
+bardic/tmp.ipynb
+
+# results
+bardic/results

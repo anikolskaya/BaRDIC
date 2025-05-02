@@ -2,7 +2,6 @@ from typing import Dict, List
 
 import pandas as pd
 
-from ..api.convert import annotation_to_dict
 from ..api.io import read_bedgraph
 from .background import make_background_track
 from .binsizes import optimize_bin_sizes
@@ -33,9 +32,8 @@ def run_pipeline(dna_parts_fname: str,
                  uniform_bg: bool = False,
                  n_cores: int = 1):
     chromdict = chromsizes
-    annotation_dict = annotation_to_dict(annotation)
 
-    dna_dataset = bed2h5(dna_parts_fname, dna_dataset_fname, chromdict, annotation_dict)
+    dna_dataset = bed2h5(dna_parts_fname, dna_dataset_fname, chromdict, annotation)
 
     selection_df = optimize_bin_sizes(dna_dataset, n_cores=n_cores, **binsize_params)
     selection_df.to_csv(selection_results_fname, sep='\t', header=True, index=False)

@@ -343,8 +343,6 @@ class DnaDataset:
         self._chromsizes: Optional[Dict[str, int]] = chromsizes
         if chromsizes is not None:
             self._write_chromsizes()
-        if annotation is not None:
-            self.validate_annotation(annotation, self.chromsizes)
         self._annotation: Optional[Dict[str, GeneCoord]] = annotation
 
     @property
@@ -423,96 +421,8 @@ class DnaDataset:
             Dictionary in the form of `{gene_name: gene_coordinates}`,
             that contains gene coordinates.
         """
-        self.validate_annotation(annotation_dict, self.chromsizes)
         self._annotation = annotation_dict
-
-    @staticmethod
-    def validate_annotation(annotation_dict: Dict[str, GeneCoord],
-                            chromsizes_dict: Dict[str, int]) -> bool:
-        """
-        Validates provided gene annotation.
-
-        Checks that for each RNA:
-        1. start does not exceed end.
-        2. chromosome name is present in chromosome sizes.
-        3. start is nonnegative.
-        4. end does not exceed the chromosome size.
-
-        Parameters
-        ----------
-        annotation_dict : dict
-            Dictionary in the form of `{gene_name: gene_coordinates}`,
-            that contains gene coordinates.
-        chromsizes_dict : dict
-            A dictionary of chromosome sizes in the form
-            of `{chromosome_name: chromosome_size}`.
-
-        Returns
-        -------
-        bool
-            True if all validation checks are successful.
-            Otherwise, raises exceptions.
-
-        Raises
-        ------
-        Exception
-            If one of the validation rules is broken
-            for any RNA.
-
-        """
-        for _rna_name, rna_annot in annotation_dict.items():
-            if rna_annot.start >= rna_annot.end:
-                raise Exception  # rna_name, start, end
-            if rna_annot.chrom not in chromsizes_dict:
-                raise Exception  # rna_name, chrom
-            if rna_annot.start < 0:
-                raise Exception  # rna_name, start
-            if rna_annot.end > chromsizes_dict[rna_annot.chrom]:
-                raise Exception  # rna_name, end, chromsize
-        return True
-
-    @staticmethod
-    def validate_dna_frame(dna_frame: pd.DataFrame,
-                           annotation_dict: Dict[str, GeneCoord],
-                           chromsizes_dict: Dict[str, int]) -> bool:
-        """
-        Validates a dataframe with DNA parts of contacts.
-
-        Validation checks:
-        1. The dataframe is a valid BED dataframe (according to bioframe).
-        2. For every RNA:
-            2.1. RNA name is present in the annotation dictionary.
-            2.2. Every chromosome name is present in the chromosome
-                 sizes dictionary.
-        3. For every DNA part:
-            2.1. End does not exceed the chromosome size.
-            2.2. Start is nonnegative.
-
-        Returns
-        -------
-        bool
-            True if all validation checks are successful.
-            Otherwise, raises exceptions.
-
-        Raises
-        ------
-        Exception
-            If one of the validation rules is broken.
-        """
-        if not bf.is_bedframe(dna_frame):
-            raise Exception
-        for rna_name in dna_frame['name'].unique():
-            if rna_name not in annotation_dict:
-                raise Exception
-        for chrom_name in dna_frame['chrom'].unique():
-            if chrom_name not in chromsizes_dict:
-                raise Exception
-        for chrom_name, chrom_df in dna_frame.groupby('chrom'):
-            if (chrom_df['end'] > chromsizes_dict[chrom_name]).sum() > 0:
-                raise Exception
-            if (chrom_df['start'] < 0).sum() > 0:
-                raise Exception
-        return True
+    
 
     def _read_chromsizes(self) -> Dict[str, int]:
         """
@@ -695,9 +605,6 @@ class DnaDataset:
         -------
         None
         """
-        annotation_dict = self.annotation
-        self.validate_dna_frame(dna_frame, annotation_dict, self.chromsizes)  # TODO: check if validation is needed
-        self.validate_annotation(annotation_dict, self.chromsizes)  # TODO: check if validation is needed
         with h5py.File(self.fname, 'a') as f:
             for rna_name, dna_parts in dna_frame.groupby(rna_col):
                 self._write_dna_parts(f, rna_name, dna_parts)

@@ -7,6 +7,12 @@ from ..api.formats import DnaDataset
 from ..api.schemas import GeneCoord
 from ..api.convert import annotation_to_dict
 
+def encode_invalid_rna_names(rna_name: str) -> str:
+    return rna_name.replace('/', '%2F')
+
+def decode_invalid_rna_names(rna_name: str) -> str:
+    return rna_name.replace('%2F', '/')
+
 def validate_dna_frame(dna_frame: pd.DataFrame,
                        chromsizes_dict: Dict[str, int],
                        annotation: Optional[pd.DataFrame] = None,
@@ -42,9 +48,10 @@ def validate_dna_frame(dna_frame: pd.DataFrame,
         for rna_name in dna_frame['name'].unique():
             if '/' in rna_name:
                 invalid_rna_names.append(rna_name)
-                print(f'[Warning]RNA name "{rna_name}" contains invalid characters — replacing with "_"')
+                print(f'[Warning]RNA name "{rna_name}" contains invalid characters — temporarily replacing')
                 old_rna_name = rna_name
-                rna_name = old_rna_name.replace('/', '_')
+                rna_name = old_rna_name.replace('/', '%2F')
+                invalid_rna_names.append(rna_name)
                 dna_frame.loc[dna_frame['name'] == old_rna_name, 'name'] = rna_name
 
             if (type == 'dna_frame') and (rna_name not in annotation['name'].unique()):
@@ -58,7 +65,7 @@ def validate_dna_frame(dna_frame: pd.DataFrame,
                 dna_frame = dna_frame[dna_frame['chrom'] != chrom_name]
 
         dna_frame = clean_dna_frame(dna_frame, chromsizes_dict)
-        return dna_frame
+        return dna_frame, invalid_rna_names
 
 
 def clean_dna_frame(dna_frame: pd.DataFrame, chromsizes_dict: Dict[str, int]) -> pd.DataFrame:
@@ -91,10 +98,10 @@ def bed2h5(bed_fname: str,
            annotation_df: pd.DataFrame) -> DnaDataset:
     dna_frame = bf.read_table(bed_fname, schema='bed6')
 
-    annotation_df = validate_dna_frame(annotation_df, chromsizes, type='annotation')
+    annotation_df, _ = validate_dna_frame(annotation_df, chromsizes, type='annotation')
     annotation_df = check_duplicate_rna_names(annotation_df)
 
-    refined_dna_frame = validate_dna_frame(dna_frame, chromsizes, annotation_df, type='dna_frame')
+    refined_dna_frame, invalid_rna_names = validate_dna_frame(dna_frame, chromsizes, annotation_df, type='dna_frame')
 
     annotation = annotation_to_dict(annotation_df)
 
@@ -104,4 +111,4 @@ def bed2h5(bed_fname: str,
                           if rna_name in present_rnas}
     dataset = DnaDataset(h5_fname, chromsizes, refined_annotation)
     dataset.write_dna_parts_batch(refined_dna_frame)
-    return dataset
+    return dataset, invalid_rna_names

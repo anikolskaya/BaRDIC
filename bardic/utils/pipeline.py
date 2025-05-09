@@ -5,7 +5,7 @@ import pandas as pd
 from ..api.io import read_bedgraph
 from .background import make_background_track
 from .binsizes import optimize_bin_sizes
-from .dnadataset import bed2h5
+from .dnadataset import bed2h5, encode_invalid_rna_names, decode_invalid_rna_names
 from .peaks import estimate_significance, fetch_peaks, format_peaks, fetch_top_percent
 from .rdc import dnadataset_to_rdc
 from .scaling import calculate_scaling_splines
@@ -33,9 +33,14 @@ def run_pipeline(dna_parts_fname: str,
                  n_cores: int = 1):
     chromdict = chromsizes
 
-    dna_dataset = bed2h5(dna_parts_fname, dna_dataset_fname, chromdict, annotation)
+    dna_dataset, invalid_rna_names = bed2h5(dna_parts_fname, dna_dataset_fname, chromdict, annotation)
 
     selection_df = optimize_bin_sizes(dna_dataset, n_cores=n_cores, **binsize_params)
+    
+    rna_list = [encode_invalid_rna_names(rna) for rna in rna_list]
+    if len(invalid_rna_names) > 0:
+        selection_df['gene_name'] = selection_df['gene_name'].apply(decode_invalid_rna_names)
+
     selection_df.to_csv(selection_results_fname, sep='\t', header=True, index=False)
 
     if make_bg:
@@ -53,8 +58,13 @@ def run_pipeline(dna_parts_fname: str,
     fixed_peaks = fetch_top_percent(rdc_data, qval_type, top_percent, n_cores)
 
     formatted_peaks = format_peaks(peaks, **peaks_format_params)
-    formatted_peaks.to_csv(peaks_output, sep='\t', header=False, index=False)
-
     fixed_formatted_peaks = format_peaks(fixed_peaks, **peaks_format_params)
+    
+
+    if len(invalid_rna_names) > 0:
+        formatted_peaks.iloc[:, 3] = formatted_peaks.iloc[:, 3].apply(decode_invalid_rna_names)
+        fixed_formatted_peaks.iloc[:, 3] = fixed_formatted_peaks.iloc[:, 3].apply(decode_invalid_rna_names)
+
+    formatted_peaks.to_csv(peaks_output, sep='\t', header=False, index=False)
     fixed_formatted_peaks.to_csv(peaks_output.replace(peaks_format_params['format'], 
                                                       f'top_{int(top_percent)}perc.{peaks_format_params["format"]}'), sep='\t', header=False, index=False)
